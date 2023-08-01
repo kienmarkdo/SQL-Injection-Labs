@@ -1,0 +1,17 @@
+GET /filter?category=Accessories HTTP/2
+Host: 0aff0041033b0d2e80004edc00c100fb.web-security-academy.net
+Cookie: session=KsJVf3621bIRkS5Ri0fQYxBr3qS8DKgS
+Sec-Ch-Ua: 
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: ""
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.5790.110 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Referer: https://0aff0041033b0d2e80004edc00c100fb.web-security-academy.net/
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9
+

