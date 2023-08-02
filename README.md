@@ -24,3 +24,5 @@ Prior to doing these labs, I learned the basic theory of:
 Manual SQL injections (or manual pen testing in general) via random payloads is time-consuming; moreover, bots can already do this and it will only catch the low hanging fruits. As such, I will not only try to solve these labs manually, but also I will attempt to write Python scripts that perform the SQL injections.
 
 When I do come across a vulnerability that requires scripting/automation in the future, such as a blind SQL injection vulnerability, I will have been more familiar with it.
+
+<!-- Source: https://github.com/kienmarkdo/SQL-Injection-Labs -->
