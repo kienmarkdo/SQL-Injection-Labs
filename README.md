@@ -1,11 +1,13 @@
 # SQL Injection Labs
 My lab notes and learning progress for the Web Security Academy's SQL Injection chapter.
 
-Follows PortSwigger's Web Security Academy training path. This repository is a record of my labs for Chapter 1: SQL injection. The course can be found here: https://portswigger.net/web-security/sql-injection
+This repository is a record of my labs for "Chapter 1: SQL injection" following PortSwigger's Web Security Academy training path https://portswigger.net/web-security/sql-injection
 
 The labs are done on Kali Linux VM on VirtualBox, where I also utilize Burp Suite Community Edition 2023.7.2.
 
-### General Notes
+**Environment Setup Instructions:** https://github.com/kienmarkdo/Netcat-NMAP-Lab
+
+## General Notes
 Prior to doing these labs, I learned the basic theory of:
 - What is an SQL injection?
   - Types of SQL injections
@@ -19,7 +21,7 @@ Prior to doing these labs, I learned the basic theory of:
 
 ![image](https://github.com/kienmarkdo/SQL-Injection-Labs/assets/67518620/33cbdd8a-4a44-4ecd-b429-1683fe381b7e)
 
-### Lab Contents
+## Lab Contents
 - Lab 01 - Retrieval of hidden data using WHERE clause
 - Lab 02 - SQL injection vulnerability allowing login bypass
 - Lab 03 - SQL injection UNION attack to determine number of columns in a table
@@ -39,7 +41,7 @@ Prior to doing these labs, I learned the basic theory of:
 - Lab 17 - SQL injection with filter bypass via XML encoding
 - Lab 18 - Visible error-based SQL injection
 
-### Automation
+## Automation
 Manual SQL injections (or manual pen testing in general) via random payloads is time-consuming; moreover, bots can already do this and it will only catch the low hanging fruits. As such, I will not only try to solve these labs manually, but also I will attempt to write Python scripts that perform the SQL injections.
 
 When I do come across a vulnerability that requires scripting/automation in the future, such as a blind SQL injection vulnerability, I will have been more familiar with it.
