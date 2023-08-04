@@ -1,4 +1,4 @@
-LAB 05 - SQL injection UNION attack, retrieving multiple values in a single column
+LAB 06 - SQL injection UNION attack, retrieving multiple values in a single column
 
 SQL Injection - Product category filter
 
